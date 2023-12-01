@@ -13,11 +13,6 @@ const port = process.env.PORT || '3005'
 
 async function serveFile(statusCode ,filePath, contenType, response) {
     try{
-
-        console.log('filePath')
-        console.log(filePath)
-
-
         const rawData = await fs.readFileSync(filePath, 
             contenType.includes('image') ? '' : 'utf8');
 
@@ -38,13 +33,10 @@ async function serveFile(statusCode ,filePath, contenType, response) {
 }
 
 const server    = http.createServer((req,res)=>{
-    console.log(req.url, req.method);
 
     serverEmitter.emit('log', `${req.url}\t${req.method}`)
 
     let extension = path.extname(req.url);
-    console.log(`extension`)
-    console.log(extension)
     
     let contenType;
     switch (extension) {
@@ -68,9 +60,6 @@ const server    = http.createServer((req,res)=>{
             contenType = 'text/html'
             break;
     }
-
-    console.log(`contenType`)
-    console.log(contenType)
 
     let filePath = 
         contenType === 'text/html' && req.url === "/" 
@@ -111,7 +100,7 @@ const server    = http.createServer((req,res)=>{
             
         }
 
-        console.log(path.parse(filePath))
+        // console.log(path.parse(filePath))
     }
 })
 
