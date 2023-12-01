@@ -1,39 +1,76 @@
 const eventEnitter = require('events')
-const emitter = new eventEnitter
+const serverEmitter = new eventEnitter
 
 const path      = require('path')
 const fs        = require('fs')
 
 
 const http      = require('http')
+const { exit } = require('process')
 // const server2    = new http.Server()
+
+const port = process.env.PORT || '3005'
+
+async function serveFile(statusCode ,filePath, contenType, response) {
+    try{
+
+        console.log('filePath')
+        console.log(filePath)
+
+
+        const rawData = await fs.readFileSync(filePath, 
+            contenType.includes('image') ? '' : 'utf8');
+
+        const data = contenType === "application/json" ? JSON.parse(rawData) : rawData
+
+        response.writeHead(statusCode, {"contentType": contenType});
+
+        response.end(
+            contenType === "application/json" ? JSON.stringify(data) : data)
+    }
+    catch(err){
+        console.log(err)
+        serverEmitter.emit('err', `error serving file || ${filePath}\t ${filePath} \t Message: ${err}`)
+        response.statusCode = 500
+        response.end()
+        throw err
+    }
+}
+
 const server    = http.createServer((req,res)=>{
     console.log(req.url, req.method);
 
+    serverEmitter.emit('log', `${req.url}\t${req.method}`)
+
     let extension = path.extname(req.url);
+    console.log(`extension`)
+    console.log(extension)
     
     let contenType;
     switch (extension) {
         case '.css':
-            contenType === 'text/css'
+            contenType = 'text/css'
             break;
         case '.js':
-            contenType === 'text/javascript'
+            contenType = 'text/javascript'
             break;
         case '.json':
-            contenType === 'text/json'
+            contenType = 'application/json'
             break;
         case '.jpg':
-            contenType === 'image/jpeg'
+            contenType = 'image/jpeg'
             break;
         case '.txt':
-            contenType === 'text/plain'
+            contenType = 'text/plain'
             break;
             
             default:
-            contenType === 'text/html'
+            contenType = 'text/html'
             break;
     }
+
+    console.log(`contenType`)
+    console.log(contenType)
 
     let filePath = 
         contenType === 'text/html' && req.url === "/" 
@@ -51,27 +88,56 @@ const server    = http.createServer((req,res)=>{
 
     if(fileExists){
         //serve the file
+
+        serveFile(200, filePath,contenType,res)
     }
     else{
-        // 404
-        // 403
+
+        switch (path.parse(filePath).base) {
+            case "old-page.html":
+                res.writeHead(301,{"location": "/views/new-page.html"})
+                res.end()
+                break;
+        
+                case "www.page.html":
+                res.writeHead(301,{"location": "/"})
+                res.end()
+                break;
+
+            default:
+                serveFile(404, path.join(__dirname, "views", "404.html"), "text/html" ,res)
+
+                break;
+            
+        }
 
         console.log(path.parse(filePath))
     }
 })
 
-const port = process.env.PORT || '3005'
 
 server.listen(port,(req, res)=>{
     console.table({message: 'Server listening', Port: port})
 })
 
+serverEmitter.on('log', (msg=>{
+    try {
+        fs.appendFileSync(path.join(__dirname, "logs", "servetlogs.txt"), `\n ${new Date} || ${msg}`)
+    } catch (error) {
+        serverEmitter.emit('err', "error saving server log")
+        console.log(err)
+    }
+}))
 
+serverEmitter.on('err', msg=>{
+    fs.appendFileSync(path.join(__dirname, "logs", "errors.txt"), `\n ${new Date} || ${msg}`)
+})
+
+
+process.on('uncaughtException',(err)=>{console.log(err); process.exit(0)})
 
 // emitter.on('oops',function (a,s,d,f) {
 //     console.log(a); console.log(s); console.log(d); console.log(f);
 // })
 
 // emitter.emit('oops',"first arg", 'second arg','third arg','fourth arg')
-
-// process.on('uncaughtException',(err)=>{console.log(err)})
