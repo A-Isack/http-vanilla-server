@@ -6,7 +6,7 @@ const fs        = require('fs')
 
 
 const http      = require('http')
-const { exit } = require('process')
+
 // const server2    = new http.Server()
 
 const port = process.env.PORT || '3005'
@@ -123,7 +123,7 @@ serverEmitter.on('err', msg=>{
 })
 
 
-process.on('uncaughtException',(err)=>{console.log(err); process.exit(0)})
+process.on('uncaughtException',(err)=>{console.log(err); process.exit(1)})
 
 // emitter.on('oops',function (a,s,d,f) {
 //     console.log(a); console.log(s); console.log(d); console.log(f);
